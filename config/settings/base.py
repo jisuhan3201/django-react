@@ -3,6 +3,7 @@ Base settings to build other settings files upon.
 """
 
 import environ
+import datetime
 
 ROOT_DIR = environ.Path(__file__) - 3  # (wizwid_app/config/settings/base.py - 3 = wizwid_app/)
 APPS_DIR = ROOT_DIR.path('wizwid_app')
@@ -39,7 +40,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db('DATABASE_URL', default='postgres:///wizwid_app'),
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('RDS_DB_NAME'),
+        'USER': env('RDS_DB_USERNAME'),
+        'PASSWORD': env('RDS_DB_PASSWORD'),
+        'HOST': env('RDS_DB_HOSTNAME'),
+        'PORT': env('RDS_DB_PORT'),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'" # strict mode 설정 추가
+        }
+    }
 }
 DATABASES['default']['ATOMIC_REQUESTS'] = True
 
@@ -63,11 +74,11 @@ DJANGO_APPS = [
     'django.contrib.admin',
 ]
 THIRD_PARTY_APPS = [
-    'crispy_forms',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'rest_framework',
+    'corsheaders'
 ]
 LOCAL_APPS = [
     'wizwid_app.users.apps.UsersAppConfig',
@@ -131,6 +142,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -146,6 +158,7 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
 STATICFILES_DIRS = [
     str(APPS_DIR.path('static')),
+    str(ROOT_DIR.path('frontend', 'build', 'static')),
 ]
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = [
@@ -249,3 +262,17 @@ SOCIALACCOUNT_ADAPTER = 'wizwid_app.users.adapters.SocialAccountAdapter'
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+    ),
+}
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    # 'JWT_RESPONSE_PAYLOAD_HANDLER': 'buddy_app.users.helper.jwt_response_payload_handler'
+}
+
+CORS_ORIGIN_ALLOW_ALL = True
